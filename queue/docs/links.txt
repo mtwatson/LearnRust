@@ -1,0 +1,5 @@
+Queue description:
+https://www.tutorialspoint.com/data_structures_algorithms/dsa_queue.htm
+
+Queue implementation in Rust:
+https://www.kirillvasiltsov.com/writing/how-to-write-a-queue-in-rust/

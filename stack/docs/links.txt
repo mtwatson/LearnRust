@@ -1,0 +1,11 @@
+Stack description:
+https://www.tutorialspoint.com/data_structures_algorithms/stack_algorithm.htm
+
+Stack implementation in Rust:
+https://www.kirillvasiltsov.com/writing/how-to-write-a-stack-in-rust/
+
+Online infix-to-postfix converter and description of converter algorithm:
+https://www.web4college.com/converters/infix-to-postfix-prefix.php
+
+Online postfix calculator and description of calculator algorithm:
+https://www.calcont.in/Calculator/Postfix_calculator/#google_vignette
