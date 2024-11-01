@@ -113,6 +113,11 @@ impl<T> LinkedList<T>
         }
     }
 
+    pub fn insert_sorted(&mut self, elem: T)
+    {
+        // Add code here
+    }
+
     pub fn pop_front(&mut self) -> Option<T>
     {
         unsafe {
