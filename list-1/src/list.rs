@@ -116,6 +116,15 @@ impl<T> LinkedList<T>
     pub fn insert_sorted(&mut self, elem: T)
     {
         // Add code here
+        // search through the already existing list(self)
+        // find the correct insertion point
+        // move the pointers around so the structure is correct
+        //
+        // insert 2 into list 1 <--> 3
+        // result 1 <--> 2 <--> 3
+        // note <--> denotes a pair of links one going each way
+        // so detatch --> from 1 to 3, and re-link 1 --> 2
+        // simmilar with 1 <-- 3 moves to 2 <-- 3
     }
 
     pub fn pop_front(&mut self) -> Option<T>
