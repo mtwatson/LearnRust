@@ -124,7 +124,7 @@ impl<T> LinkedList<T>
         // result 1 <--> 2 <--> 3
         // note <--> denotes a pair of links one going each way
         // so detatch --> from 1 to 3, and re-link 1 --> 2
-        // simmilar with 1 <-- 3 moves to 2 <-- 3
+        // similar with 1 <-- 3 moves to 2 <-- 3
     }
 
     pub fn pop_front(&mut self) -> Option<T>
@@ -1214,6 +1214,7 @@ mod test
         assert_eq!(cursor.index(), Some(4));
     }
 
+
     #[test]
     fn test_cursor_mut_insert()
     {
@@ -1234,24 +1235,6 @@ mod test
         check_links(&m);
         assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
                    &[10, 7, 1, 8, 2, 3, 4, 5, 6, 9]);
-
-        /* remove_current not impl'd
-        let mut cursor = m.cursor_mut();
-        cursor.move_next();
-        cursor.move_prev();
-        assert_eq!(cursor.remove_current(), None);
-        cursor.move_next();
-        cursor.move_next();
-        assert_eq!(cursor.remove_current(), Some(7));
-        cursor.move_prev();
-        cursor.move_prev();
-        cursor.move_prev();
-        assert_eq!(cursor.remove_current(), Some(9));
-        cursor.move_next();
-        assert_eq!(cursor.remove_current(), Some(10));
-        check_links(&m);
-        assert_eq!(m.iter().cloned().collect::<Vec<_>>(), &[1, 8, 2, 3, 4, 5, 6]);
-        */
 
         let mut m: LinkedList<u32> = LinkedList::new();
         m.extend([1, 8, 2, 3, 4, 5, 6]);
@@ -1288,6 +1271,64 @@ mod test
                    &[200, 201, 202, 203, 1, 100, 101]);
     }
 
+
+
+    #[test]
+    fn test_insert_sort()
+    {
+        let mut m: LinkedList<u32> = LinkedList::new();
+        m.extend([1, 3, 2, 5, 9, 6]);
+        let mut cursor = m.cursor_mut();
+        // cursor.move_next();
+        // cursor.splice_before(Some(7).into_iter().collect());
+        // cursor.splice_after(Some(8).into_iter().collect());
+        // // check_links(&m);
+        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
+        //            &[7, 1, 8, 2, 3, 4, 5, 6]);
+        // let mut cursor = m.cursor_mut();
+        // cursor.move_next();
+        // cursor.move_prev();
+        // cursor.splice_before(Some(9).into_iter().collect());
+        // cursor.splice_after(Some(10).into_iter().collect());
+        // check_links(&m);
+        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
+        //            &[10, 7, 1, 8, 2, 3, 4, 5, 6, 9]);
+
+        // let mut m: LinkedList<u32> = LinkedList::new();
+        // m.extend([1, 8, 2, 3, 4, 5, 6]);
+        // let mut cursor = m.cursor_mut();
+        // cursor.move_next();
+        // let mut p: LinkedList<u32> = LinkedList::new();
+        // p.extend([100, 101, 102, 103]);
+        // let mut q: LinkedList<u32> = LinkedList::new();
+        // q.extend([200, 201, 202, 203]);
+        // cursor.splice_after(p);
+        // cursor.splice_before(q);
+        // check_links(&m);
+        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
+        //            &[200, 201, 202, 203, 1, 100, 101, 102, 103, 8, 2, 3, 4, 5, 6]);
+        // let mut cursor = m.cursor_mut();
+        // cursor.move_next();
+        // cursor.move_prev();
+        // let tmp = cursor.split_before();
+        // assert_eq!(m.into_iter().collect::<Vec<_>>(), &[]);
+        // m = tmp;
+        // let mut cursor = m.cursor_mut();
+        // cursor.move_next();
+        // cursor.move_next();
+        // cursor.move_next();
+        // cursor.move_next();
+        // cursor.move_next();
+        // cursor.move_next();
+        // cursor.move_next();
+        // let tmp = cursor.split_after();
+        // assert_eq!(tmp.into_iter().collect::<Vec<_>>(),
+        //            &[102, 103, 8, 2, 3, 4, 5, 6]);
+        // check_links(&m);
+        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
+        //            &[200, 201, 202, 203, 1, 100, 101]);
+    }
+
     fn check_links<T: Eq + std::fmt::Debug>(list: &LinkedList<T>)
     {
         let from_front: Vec<_> = list.iter().collect();
@@ -1297,3 +1338,4 @@ mod test
         assert_eq!(from_front, re_reved);
     }
 }
+
