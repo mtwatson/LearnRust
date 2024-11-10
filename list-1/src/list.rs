@@ -9,6 +9,7 @@ use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 pub struct LinkedList<T>
+where T:Debug + PartialOrd,
 {
     front: Link<T>,
     back: Link<T>,
@@ -19,6 +20,7 @@ pub struct LinkedList<T>
 type Link<T> = Option<NonNull<Node<T>>>;
 
 struct Node<T>
+where T:Debug + PartialOrd,
 {
     front: Link<T>,
     back: Link<T>,
@@ -26,6 +28,7 @@ struct Node<T>
 }
 
 pub struct Iter<'a, T>
+where T:Debug + PartialOrd,
 {
     front: Link<T>,
     back: Link<T>,
@@ -34,6 +37,7 @@ pub struct Iter<'a, T>
 }
 
 pub struct IterMut<'a, T>
+where T:Debug + PartialOrd,
 {
     front: Link<T>,
     back: Link<T>,
@@ -42,11 +46,13 @@ pub struct IterMut<'a, T>
 }
 
 pub struct IntoIter<T>
+where T:Debug + PartialOrd,
 {
     list: LinkedList<T>,
 }
 
 pub struct CursorMut<'a, T>
+where T:Debug + PartialOrd,
 {
     list: &'a mut LinkedList<T>,
     cur: Link<T>,
@@ -54,6 +60,7 @@ pub struct CursorMut<'a, T>
 }
 
 impl<T> LinkedList<T>
+where T:Debug + PartialOrd,
 {
     pub fn new() -> Self
     {
@@ -113,18 +120,42 @@ impl<T> LinkedList<T>
         }
     }
 
-    pub fn insert_sorted(&mut self, elem: T)
-    {
-        // Add code here
-        // search through the already existing list(self)
-        // find the correct insertion point
-        // move the pointers around so the structure is correct
-        //
-        // insert 2 into list 1 <--> 3
-        // result 1 <--> 2 <--> 3
-        // note <--> denotes a pair of links one going each way
-        // so detatch --> from 1 to 3, and re-link 1 --> 2
-        // similar with 1 <-- 3 moves to 2 <-- 3
+    fn insert_sorted(&mut self, elem: T) {
+        // Case 1: Empty list or the new element is the smallest (insert at the front)
+        if self.is_empty() || self.front().map_or(false, |front| &elem < front) {
+            self.push_front(elem);
+            return;
+        }
+    
+        // Case 2: The new element is the largest (insert at the back)
+        if self.back().map_or(false, |back| &elem >= back) {
+            self.push_back(elem);
+            return;
+        }
+    
+        // Case 3: Insert somewhere in the middle
+        // Create a new LinkedList to help rebuild the list with the new element inserted in order
+        let mut new_list = LinkedList::new();
+    
+        // Move elements until we find the correct spot for `elem`
+        while let Some(value) = self.pop_front() {
+            if value > elem {
+                // Insert the new element before the first element greater than `elem`
+                new_list.push_back(elem);
+                new_list.push_back(value);
+                break;
+            } else {
+                new_list.push_back(value);
+            }
+        }
+    
+        // Append the rest of the original list to the new list
+        while let Some(value) = self.pop_front() {
+            new_list.push_back(value);
+        }
+    
+        // Replace the original list with the new list
+        *self = new_list;
     }
 
     pub fn pop_front(&mut self) -> Option<T>
@@ -237,6 +268,7 @@ impl<T> LinkedList<T>
 }
 
 impl<T> Drop for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn drop(&mut self)
     {
@@ -247,11 +279,13 @@ impl<T> Drop for LinkedList<T>
 }
 
 impl<T> Default for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn default() -> Self { Self::new() }
 }
 
 impl<T: Clone> Clone for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn clone(&self) -> Self
     {
@@ -265,6 +299,7 @@ impl<T: Clone> Clone for LinkedList<T>
 }
 
 impl<T> Extend<T> for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I)
     {
@@ -276,6 +311,7 @@ impl<T> Extend<T> for LinkedList<T>
 }
 
 impl<T> FromIterator<T> for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self
     {
@@ -285,7 +321,7 @@ impl<T> FromIterator<T> for LinkedList<T>
     }
 }
 
-impl<T: Debug> Debug for LinkedList<T>
+impl<T: Debug + PartialOrd> Debug for LinkedList<T>
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
@@ -294,23 +330,29 @@ impl<T: Debug> Debug for LinkedList<T>
 }
 
 impl<T: PartialEq> PartialEq for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn eq(&self, other: &Self) -> bool { self.len() == other.len() && self.iter().eq(other) }
 }
 
-impl<T: Eq> Eq for LinkedList<T> {}
+impl<T: Eq> Eq for LinkedList<T>
+where T:Debug + PartialOrd,
+{}
 
 impl<T: PartialOrd> PartialOrd for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> { self.iter().partial_cmp(other) }
 }
 
 impl<T: Ord> Ord for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn cmp(&self, other: &Self) -> Ordering { self.iter().cmp(other) }
 }
 
 impl<T: Hash> Hash for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     fn hash<H: Hasher>(&self, state: &mut H)
     {
@@ -323,6 +365,7 @@ impl<T: Hash> Hash for LinkedList<T>
 }
 
 impl<'a, T> IntoIterator for &'a LinkedList<T>
+where T:Debug + PartialOrd,
 {
     type IntoIter = Iter<'a, T>;
     type Item = &'a T;
@@ -331,6 +374,7 @@ impl<'a, T> IntoIterator for &'a LinkedList<T>
 }
 
 impl<'a, T> Iterator for Iter<'a, T>
+where T:Debug + PartialOrd,
 {
     type Item = &'a T;
 
@@ -358,6 +402,7 @@ impl<'a, T> Iterator for Iter<'a, T>
 }
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T>
+where T:Debug + PartialOrd,
 {
     fn next_back(&mut self) -> Option<Self::Item>
     {
@@ -377,11 +422,13 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T>
 }
 
 impl<'a, T> ExactSizeIterator for Iter<'a, T>
+where T:Debug + PartialOrd,
 {
     fn len(&self) -> usize { self.len }
 }
 
 impl<'a, T> IntoIterator for &'a mut LinkedList<T>
+where T:Debug + PartialOrd,
 {
     type IntoIter = IterMut<'a, T>;
     type Item = &'a mut T;
@@ -390,6 +437,7 @@ impl<'a, T> IntoIterator for &'a mut LinkedList<T>
 }
 
 impl<'a, T> Iterator for IterMut<'a, T>
+where T:Debug + PartialOrd,
 {
     type Item = &'a mut T;
 
@@ -417,6 +465,7 @@ impl<'a, T> Iterator for IterMut<'a, T>
 }
 
 impl<'a, T> DoubleEndedIterator for IterMut<'a, T>
+where T:Debug + PartialOrd,
 {
     fn next_back(&mut self) -> Option<Self::Item>
     {
@@ -436,11 +485,13 @@ impl<'a, T> DoubleEndedIterator for IterMut<'a, T>
 }
 
 impl<'a, T> ExactSizeIterator for IterMut<'a, T>
+where T:Debug + PartialOrd,
 {
     fn len(&self) -> usize { self.len }
 }
 
 impl<T> IntoIterator for LinkedList<T>
+where T:Debug + PartialOrd,
 {
     type IntoIter = IntoIter<T>;
     type Item = T;
@@ -449,6 +500,7 @@ impl<T> IntoIterator for LinkedList<T>
 }
 
 impl<T> Iterator for IntoIter<T>
+where T:Debug + PartialOrd,
 {
     type Item = T;
 
@@ -458,16 +510,19 @@ impl<T> Iterator for IntoIter<T>
 }
 
 impl<T> DoubleEndedIterator for IntoIter<T>
+where T:Debug + PartialOrd,
 {
     fn next_back(&mut self) -> Option<Self::Item> { self.list.pop_back() }
 }
 
 impl<T> ExactSizeIterator for IntoIter<T>
+where T:Debug + PartialOrd,
 {
     fn len(&self) -> usize { self.list.len }
 }
 
 impl<'a, T> CursorMut<'a, T>
+where T:Debug + PartialOrd,
 {
     pub fn index(&self) -> Option<usize> { self.index }
 
@@ -850,14 +905,20 @@ impl<'a, T> CursorMut<'a, T>
     }
 }
 
-unsafe impl<T: Send> Send for LinkedList<T> {}
-unsafe impl<T: Sync> Sync for LinkedList<T> {}
+unsafe impl<T: Send> Send for LinkedList<T>
+where T:Debug + PartialOrd, {}
+unsafe impl<T: Sync> Sync for LinkedList<T>
+where T:Debug + PartialOrd, {}
 
-unsafe impl<'a, T: Send> Send for Iter<'a, T> {}
-unsafe impl<'a, T: Sync> Sync for Iter<'a, T> {}
+unsafe impl<'a, T: Send> Send for Iter<'a, T>
+where T:Debug + PartialOrd, {}
+unsafe impl<'a, T: Sync> Sync for Iter<'a, T>
+where T:Debug + PartialOrd, {}
 
-unsafe impl<'a, T: Send> Send for IterMut<'a, T> {}
-unsafe impl<'a, T: Sync> Sync for IterMut<'a, T> {}
+unsafe impl<'a, T: Send> Send for IterMut<'a, T>
+where T:Debug + PartialOrd, {}
+unsafe impl<'a, T: Sync> Sync for IterMut<'a, T>
+where T:Debug + PartialOrd, {}
 
 #[allow(dead_code)]
 fn assert_properties()
@@ -877,9 +938,9 @@ fn assert_properties()
     is_send::<IterMut<i32>>();
     is_sync::<IterMut<i32>>();
 
-    fn linked_list_covariant<'a, T>(x: LinkedList<&'static T>) -> LinkedList<&'a T> { x }
-    fn iter_covariant<'i, 'a, T>(x: Iter<'i, &'static T>) -> Iter<'i, &'a T> { x }
-    fn into_iter_covariant<'a, T>(x: IntoIter<&'static T>) -> IntoIter<&'a T> { x }
+    fn linked_list_covariant<'a, T:Debug + PartialOrd>(x: LinkedList<&'static T>) -> LinkedList<&'a T> { x }
+    fn iter_covariant<'i, 'a, T:Debug + PartialOrd>(x: Iter<'i, &'static T>) -> Iter<'i, &'a T> { x }
+    fn into_iter_covariant<'a, T:Debug + PartialOrd>(x: IntoIter<&'static T>) -> IntoIter<&'a T> { x }
 
     /// ```compile_fail,E0308
     /// use linked_list::IterMut;
@@ -892,11 +953,12 @@ fn assert_properties()
 #[cfg(test)]
 mod test
 {
+    use std::fmt::Debug;
     use super::LinkedList;
 
     fn generate_test() -> LinkedList<i32> { list_from(&[0, 1, 2, 3, 4, 5, 6]) }
 
-    fn list_from<T: Clone>(v: &[T]) -> LinkedList<T> { v.iter().map(|x| (*x).clone()).collect() }
+    fn list_from<T: Clone + Debug + PartialOrd>(v: &[T]) -> LinkedList<T> { v.iter().map(|x| (*x).clone()).collect() }
 
     #[test]
     fn test_basic_front()
@@ -1274,62 +1336,21 @@ mod test
 
 
     #[test]
-    fn test_insert_sort()
+    fn test_insert_sorted()
     {
         let mut m: LinkedList<u32> = LinkedList::new();
-        m.extend([1, 3, 2, 5, 9, 6]);
-        let mut cursor = m.cursor_mut();
-        // cursor.move_next();
-        // cursor.splice_before(Some(7).into_iter().collect());
-        // cursor.splice_after(Some(8).into_iter().collect());
-        // // check_links(&m);
-        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
-        //            &[7, 1, 8, 2, 3, 4, 5, 6]);
-        // let mut cursor = m.cursor_mut();
-        // cursor.move_next();
-        // cursor.move_prev();
-        // cursor.splice_before(Some(9).into_iter().collect());
-        // cursor.splice_after(Some(10).into_iter().collect());
-        // check_links(&m);
-        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
-        //            &[10, 7, 1, 8, 2, 3, 4, 5, 6, 9]);
-
-        // let mut m: LinkedList<u32> = LinkedList::new();
-        // m.extend([1, 8, 2, 3, 4, 5, 6]);
-        // let mut cursor = m.cursor_mut();
-        // cursor.move_next();
-        // let mut p: LinkedList<u32> = LinkedList::new();
-        // p.extend([100, 101, 102, 103]);
-        // let mut q: LinkedList<u32> = LinkedList::new();
-        // q.extend([200, 201, 202, 203]);
-        // cursor.splice_after(p);
-        // cursor.splice_before(q);
-        // check_links(&m);
-        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
-        //            &[200, 201, 202, 203, 1, 100, 101, 102, 103, 8, 2, 3, 4, 5, 6]);
-        // let mut cursor = m.cursor_mut();
-        // cursor.move_next();
-        // cursor.move_prev();
-        // let tmp = cursor.split_before();
-        // assert_eq!(m.into_iter().collect::<Vec<_>>(), &[]);
-        // m = tmp;
-        // let mut cursor = m.cursor_mut();
-        // cursor.move_next();
-        // cursor.move_next();
-        // cursor.move_next();
-        // cursor.move_next();
-        // cursor.move_next();
-        // cursor.move_next();
-        // cursor.move_next();
-        // let tmp = cursor.split_after();
-        // assert_eq!(tmp.into_iter().collect::<Vec<_>>(),
-        //            &[102, 103, 8, 2, 3, 4, 5, 6]);
-        // check_links(&m);
-        // assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
-        //            &[200, 201, 202, 203, 1, 100, 101]);
+        // m.extend([1, 3, 2, 5, 9, 6]);
+        m.insert_sorted(1);
+        m.insert_sorted(3);
+        m.insert_sorted(2);
+        m.insert_sorted(4);
+        m.insert_sorted(6);
+        m.insert_sorted(5);
+        assert_eq!(m.iter().cloned().collect::<Vec<_>>(),
+                   &[1,2,3,4,5,6]);
     }
 
-    fn check_links<T: Eq + std::fmt::Debug>(list: &LinkedList<T>)
+    fn check_links<T: Eq + std::fmt::Debug + std::cmp::PartialOrd>(list: &LinkedList<T>)
     {
         let from_front: Vec<_> = list.iter().collect();
         let from_back: Vec<_> = list.iter().rev().collect();
