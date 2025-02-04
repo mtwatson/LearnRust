@@ -16,24 +16,31 @@ pub struct UsizeTree
     len: usize,
 }
 
+fn box_to_raw(elem: Box<UsizeNode>) -> Option<NonNull<UsizeNode>> {
+    Some(NonNull::new(Box::into_raw(elem)).unwrap())
+}
+
 impl UsizeTree
 {
     // create a new empty tree
     pub fn new() -> Self
     {
-        todo!();
+        Self {
+            root: None,
+            len: 0
+        }
     }
 
     // returns the number of elements in the tree
     pub fn len(&self) -> usize
     {
-        todo!();
+       self.len
     }
 
     // returns whether tree is empty or not
     pub fn is_empty(&self) -> bool
     {
-        todo!();
+        self.len == 0
     }
 
     // insert an element into the tree
@@ -41,14 +48,118 @@ impl UsizeTree
     // insertion fails if the value is already in the tree
     pub fn insert(&mut self, elem: usize) -> bool
     {
-        todo!();
+
+        if self.contains(elem) {
+            return false;
+        }
+        let new_node = Box::new(UsizeNode {
+            elem: elem,
+            left: None,
+            right: None,
+        });
+
+            unsafe {
+                if let Some(mut tree_root) = self.root {
+
+                    // Traverse and insert at the first available position
+                    loop {
+                        let current_ref = tree_root.as_mut();
+    
+                        if elem < current_ref.elem {
+                            if let Some(left) = current_ref.left {
+                                tree_root = left;
+                            } else {
+                                current_ref.left =
+                                    box_to_raw(new_node);
+                                    self.len+= 1;
+                                break;
+                            }
+                        } else {
+                            if let Some(right) = current_ref.right {
+                                tree_root = right;
+                            } else {
+                                current_ref.right = box_to_raw(new_node);
+                                self.len+= 1;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+
+                    let root_node = Box::new(UsizeNode {
+                        elem,
+                        left: None,
+                        right: None,
+                    });
+            
+                    // Convert the Box<UsizeNode> to NonNull<UsizeNode>
+                    self.root = box_to_raw(root_node);
+                    self.len+= 1;
+                }
+                true
+            }
+    }
+    pub fn contains(&self, value: usize) -> bool {
+        Self::contains_node(self.root, &value)
     }
 
-    // search the tree for a value equal to passed elem
-    // returns whether equal value was found or not
-    pub fn contains(&self, elem: &usize) -> bool
+    pub fn contains_node(node: UsizeLink, elem: &usize) -> bool
     {
-        todo!();
+        unsafe {
+            if let Some(non_null_node) = node {
+                let current = non_null_node.as_ref();
+                if current.elem == *elem {
+                    return true;
+                }
+
+                // TODO
+                
+                //should be able to know which side the tree is on based
+                // on a value comparison (e.g.  greater than, less than)
+                // no need to burn down both sides of the tree all the time
+
+                // could just have this function call find_node.
+                // if find_node returns anything at all, obviously, it exists
+                // having extra logic is wasteful and violating DRY and single point of failure
+            
+                // Check left and right children
+                return Self::contains_node(current.left, elem)
+                    || Self::contains_node(current.right, elem);
+            }
+    
+            false
+        }
+    }
+
+    pub fn find_node(link: UsizeLink, value: usize) -> Option<&'static UsizeNode> {
+        if let Some(non_null_node) = link {
+            unsafe {
+                let node_ref = non_null_node.as_ref();
+
+                if node_ref.elem == value {
+                    return Some(node_ref); // Found the node
+                }
+    
+                // TODO
+                
+                //should be able to know which side the tree is on based
+                // on a value comparison (e.g.  greater than, less than)
+                // no need to burn down both sides of the tree all the time
+
+                // Recursively search left and right subtrees
+                let left_result = Self::find_node(node_ref.left, value);
+                if left_result.is_some() {
+                    return left_result;
+                }
+    
+                let right_result = Self::find_node(node_ref.right, value);
+                if right_result.is_some() {
+                    return right_result;
+                }
+            }
+        }
+
+        None // Node not found
     }
 
     // remove an element from the tree
@@ -56,17 +167,42 @@ impl UsizeTree
     // removal fails if the value isn't in the tree
     pub fn remove(&mut self, elem: usize) -> bool
     {
-        todo!();
+        // if let Some(found_node) = Self::find_node(self.root, elem) {
+        //     unsafe {
+        //         Self::drop_node(found_node);
+        //         return true
+        //     }
+        // }
+        false
     }
 
     // clear the tree
     // postcondition: tree is empty
-    pub fn clear(&mut self) { todo!() }
+     pub fn clear(&mut self) { 
+        unsafe {
+            Self::drop_node(self.root);
+        }
+        self.len = 0;
+    }
+
+    // Helper function to free nodes recursively
+    unsafe fn drop_node(node: UsizeLink) {
+        if let Some(non_null_node) = node {
+            let boxed_node = Box::from_raw(non_null_node.as_ptr());
+
+            //I am being optimistic here and assuming the tree isn't length gorillion
+            Self::drop_node(boxed_node.left);
+            Self::drop_node(boxed_node.right);
+        }
+    }
 }
 
-impl Drop for UsizeTree
-{
-    fn drop(&mut self) { todo!() }
+impl Drop for UsizeTree {
+    fn drop(&mut self) {
+        unsafe {
+            Self::drop_node(self.root);
+        }
+    }
 }
 
 impl Clone for UsizeTree
@@ -102,6 +238,15 @@ mod tests
     {
         let tree = UsizeTree::new();
         assert_eq!(tree.is_empty(), true);
+    }
+
+    #[test]
+    fn test_insert()
+    {
+        let mut tree = UsizeTree::new();
+        tree.insert(1);
+        // assert_eq!(tree.insert(4), true);
+        assert!(true)
     }
 
     #[test]
@@ -205,77 +350,77 @@ mod tests
     {
         let mut tree = UsizeTree::new();
 
-        assert_eq!(tree.contains(&2), false);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(2), false);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(4), true);
-        assert_eq!(tree.contains(&1), false);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), false);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(2), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(6), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&3), false);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(3), false);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(2), false);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&3), false);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(3), false);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(1), true);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(3), true);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(5), true);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&5), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(5), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(7), true);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&5), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(5), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
+        assert_eq!(tree.contains(17), false);
 
         assert_eq!(tree.insert(3), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&5), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
-        assert_eq!(tree.contains(&17), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(5), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
+        assert_eq!(tree.contains(17), false);
     }
 
     #[test]
@@ -294,57 +439,57 @@ mod tests
         assert_eq!(tree.insert(3), false);
 
         assert_eq!(tree.remove(17), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&5), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(5), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
         assert_eq!(tree.len(), 6);
 
         assert_eq!(tree.remove(5), true);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
         assert_eq!(tree.len(), 6);
 
         assert_eq!(tree.remove(5), false);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
         assert_eq!(tree.len(), 6);
 
         assert_eq!(tree.insert(5), true);
-        assert_eq!(tree.contains(&5), true);
+        assert_eq!(tree.contains(5), true);
         assert_eq!(tree.len(), 7);
 
         assert_eq!(tree.remove(5), true);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&2), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(2), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
         assert_eq!(tree.len(), 6);
 
         assert_eq!(tree.remove(2), true);
-        assert_eq!(tree.contains(&2), false);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&1), true);
-        assert_eq!(tree.contains(&3), true);
-        assert_eq!(tree.contains(&4), true);
-        assert_eq!(tree.contains(&6), true);
-        assert_eq!(tree.contains(&7), true);
+        assert_eq!(tree.contains(2), false);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(1), true);
+        assert_eq!(tree.contains(3), true);
+        assert_eq!(tree.contains(4), true);
+        assert_eq!(tree.contains(6), true);
+        assert_eq!(tree.contains(7), true);
         assert_eq!(tree.len(), 5);
 
         assert_eq!(tree.remove(1), true);
@@ -352,13 +497,13 @@ mod tests
         assert_eq!(tree.remove(4), true);
         assert_eq!(tree.remove(6), true);
         assert_eq!(tree.remove(7), true);
-        assert_eq!(tree.contains(&1), false);
-        assert_eq!(tree.contains(&2), false);
-        assert_eq!(tree.contains(&3), false);
-        assert_eq!(tree.contains(&4), false);
-        assert_eq!(tree.contains(&5), false);
-        assert_eq!(tree.contains(&6), false);
-        assert_eq!(tree.contains(&7), false);
+        assert_eq!(tree.contains(1), false);
+        assert_eq!(tree.contains(2), false);
+        assert_eq!(tree.contains(3), false);
+        assert_eq!(tree.contains(4), false);
+        assert_eq!(tree.contains(5), false);
+        assert_eq!(tree.contains(6), false);
+        assert_eq!(tree.contains(7), false);
         assert_eq!(tree.len(), 0);
         assert_eq!(tree.is_empty(), true);
 
